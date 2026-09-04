@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BlueBot Lead Qualification Tool</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>BlueBot Lead Qualification Tool</h1>
+    <p class="tagline">Find local businesses, score them against a fixed rubric, export the list.</p>
+  </header>
+
+  <main>
+    <form id="search-form" class="search-form">
+      <div class="field">
+        <label for="city">City</label>
+        <input id="city" name="city" type="text" placeholder="Kingfisher" required />
+      </div>
+
+      <div class="field">
+        <label for="state">State</label>
+        <input id="state" name="state" list="state-options" placeholder="OK" required />
+        <datalist id="state-options"></datalist>
+      </div>
+
+      <div class="field">
+        <label for="industry">Industry / vertical</label>
+        <input id="industry" name="industry" list="industry-options" placeholder="Plumbing" required />
+        <datalist id="industry-options">
+          <option value="Plumbing"></option>
+          <option value="HVAC"></option>
+          <option value="Electrical"></option>
+          <option value="Roofing"></option>
+          <option value="Landscaping"></option>
+          <option value="Painting"></option>
+          <option value="General Contractor"></option>
+          <option value="Pest Control"></option>
+          <option value="Locksmith"></option>
+          <option value="Garage Door"></option>
+          <option value="Flooring"></option>
+          <option value="Towing"></option>
+        </datalist>
+      </div>
+
+      <div class="field submit-field">
+        <button type="submit" id="submit-btn">Find leads</button>
+      </div>
+    </form>
+
+    <p id="status-line" class="status-line" role="status"></p>
+
+    <div class="table-toolbar">
+      <button type="button" id="export-btn" disabled>Export to JSON</button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+
+    <div class="table-scroll">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>City</th>
+            <th>Business Name</th>
+            <th>Category Flag</th>
+            <th>Rating</th>
+            <th>Review Count</th>
+            <th data-sort="score" class="sortable">Score <span class="sort-indicator">▼</span></th>
+            <th>Status</th>
+            <th>Address</th>
+            <th>Phone</th>
+            <th>Website</th>
+            <th>Owner Name</th>
+            <th>Email</th>
+            <th>GMB Link</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="results-body">
+          <tr class="empty-row">
+            <td colspan="14">No results yet. Run a search above.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
