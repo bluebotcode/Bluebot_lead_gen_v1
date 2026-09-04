@@ -30,16 +30,38 @@ lead until a paid SERP-rank API is added.
 ```bash
 npm install
 cp .env.example .env
-# edit .env and set GOOGLE_PLACES_API_KEY (requires a Google Cloud project
-# with the Places API enabled and billing set up)
+# edit .env: set GOOGLE_PLACES_API_KEY (a Google Cloud project with
+# "Places API (New)" enabled and billing set up - NOT the legacy "Places
+# API", which cannot be enabled on new projects as of March 2025) and
+# LEADS_BASIC_AUTH_USER / LEADS_BASIC_AUTH_PASSWORD
 npm start
 ```
 
-Then open http://localhost:3000.
+Then open http://localhost:3000 - your browser will prompt for the Basic
+Auth credentials you set in `.env` (unless you left them unset, in which
+case the app runs ungated and logs a warning - fine for local dev, never
+for a deployed instance).
 
 The API key is only ever read server-side (`server/placesClient.js`, called
 from `server/routes/search.js`); it is never sent to the browser. This is a
 security requirement from the spec, not a nice-to-have.
+
+See `DEPLOY.md` for deploying this to a real subdomain (written for
+SiteGround's Node.js App Manager, which is what this was built for, but the
+app itself is a plain Express server that runs the same way anywhere).
+
+### Production hardening
+
+Since a deployed instance is reachable by anyone who has the URL, and every
+search spends real Google Places API budget:
+- **HTTP Basic Auth** gates the entire app (`server/authMiddleware.js`) -
+  set `LEADS_BASIC_AUTH_USER`/`LEADS_BASIC_AUTH_PASSWORD` before deploying.
+- **Rate limiting** caps `/api/search` at 20 requests per 15 minutes per
+  client (`express-rate-limit`, wired in `server/routes/search.js`), so a
+  leaked password or a stuck retry loop can't produce an open-ended bill.
+- **`helmet()`** sets standard security response headers.
+- **`app.set('trust proxy', 1)`** so rate limiting sees the real client IP
+  through a host's reverse proxy instead of the proxy's own IP.
 
 ## Tests
 
@@ -82,9 +104,18 @@ flags fire - is asserted exactly, and it caught two real issues:
 
 ## Project layout
 
-- `server/placesClient.js` - Google Places Text Search + Place Details client.
-  Runs two query phrasings per search (`"{industry} in {city}, {state}"` and
-  `"{industry} company {city} {state}"`) and dedupes by `place_id`.
+- `server/placesClient.js` - **Places API (New)** Text Search + Place Details
+  client (the legacy Places API cannot be enabled on new Google Cloud
+  projects as of March 2025). Runs two query phrasings per search
+  (`"{industry} in {city}, {state}"` and `"{industry} company {city}
+  {state}"`), dedupes by `place_id`, and adapts the New API's response shape
+  (`displayName`, `userRatingCount`, `websiteUri`, etc.) back into the
+  legacy-shaped object the rest of the codebase (scoring, vertical filter,
+  pipeline) is written against - that adapter is the only place the API
+  version matters.
+- `server/authMiddleware.js` - HTTP Basic Auth gate for the whole app.
+- `server/routes/search.js` - also wires in `express-rate-limit` on
+  `/api/search`.
 - `server/verticalFilter.js` - heuristic (name + Google `types`) mismatch
   detector, e.g. flags an HVAC company showing up in a Plumbing search.
   Flags, never silently excludes - mismatched rows still render so a human

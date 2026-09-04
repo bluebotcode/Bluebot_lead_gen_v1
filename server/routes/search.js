@@ -1,13 +1,35 @@
 'use strict';
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { findPlaces, PlacesApiError } = require('../placesClient');
 const { buildLeads } = require('../leadPipeline');
 
-function createSearchRouter({ apiKeyProvider = () => process.env.GOOGLE_PLACES_API_KEY, fetchImpl } = {}) {
+/**
+ * Every search spends real Google Places API budget (2 Text Search calls
+ * plus one Place Details call per unique result). This caps a single client
+ * to a sane number of searches even after they're past the auth gate, so a
+ * mistake (stuck retry loop, a shared password leaking) can't run up an
+ * open-ended bill. Overridable per-instance for tests.
+ */
+function defaultRateLimiter() {
+  return rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many searches from this client. Please wait a few minutes and try again.' }
+  });
+}
+
+function createSearchRouter({
+  apiKeyProvider = () => process.env.GOOGLE_PLACES_API_KEY,
+  fetchImpl,
+  rateLimiter = defaultRateLimiter()
+} = {}) {
   const router = express.Router();
 
-  router.post('/search', async (req, res) => {
+  router.post('/search', rateLimiter, async (req, res) => {
     const { city, state, industry } = req.body || {};
 
     if (!city || !state || !industry) {
