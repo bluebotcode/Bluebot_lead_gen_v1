@@ -25,8 +25,13 @@ function computeCompetitorStats(allPlaces, currentPlaceId) {
  * Builds one results-table row from a raw Place Details object.
  * Owner Name and Email are Phase 2 fields; Phase 1 always reports them as
  * "Not found" rather than guessing, per the spec's explicit instruction.
+ *
+ * `competitorPool` must already exclude vertical-mismatched places - an
+ * HVAC company that happens to show up in a Plumbing search is not a real
+ * "competitor" for Competitive Delta purposes, even though it was part of
+ * the same raw Places result set.
  */
-function buildLead(place, { city, industry, allPlaces }) {
+function buildLead(place, { city, industry, competitorPool }) {
   const base = {
     city,
     business_name: place.name || 'Unknown',
@@ -56,14 +61,15 @@ function buildLead(place, { city, industry, allPlaces }) {
     };
   }
 
-  const competitorStats = computeCompetitorStats(allPlaces, place.place_id);
+  const competitorStats = computeCompetitorStats(competitorPool, place.place_id);
   const scored = scoreLead(place, competitorStats);
 
   return { ...base, ...scored };
 }
 
 function buildLeads(places, { city, industry }) {
-  return places.map((place) => buildLead(place, { city, industry, allPlaces: places }));
+  const competitorPool = places.filter((p) => !detectVerticalMismatch(p, industry).isMismatch);
+  return places.map((place) => buildLead(place, { city, industry, competitorPool }));
 }
 
 module.exports = { buildLeads, buildLead, buildGmbLink, computeCompetitorStats };

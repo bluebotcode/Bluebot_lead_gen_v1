@@ -47,11 +47,38 @@ security requirement from the spec, not a nice-to-have.
 npm test
 ```
 
-All tests are self-contained (Node's built-in test runner, no network calls)
+Most tests are self-contained (Node's built-in test runner, no network calls)
 and mock the Google Places API responses via dependency-injected `fetch`
 implementations - there is no live API key available in the environment this
-was built in, so these are the regression check in place of testing against
-real Kingfisher/Enid search results.
+was built in.
+
+`tests/regression.kingfisherEnid.test.js` runs real prior research (two
+manually-reviewed Google Places "Plumbing" searches, Kingfisher OK and Enid
+OK - see `tests/fixtures/kingfisherEnidResearch.json`) through the actual
+pipeline. **It does not assert `score`/`status` against that fixture's own
+score/status values** - those were produced by a separate qualitative
+research pass, not by this rubric (proof: 8 businesses spanning rating
+4.0-4.9, 16-258 reviews, with and without a real website, all land on the
+same 65/Marginal, which the additive rubric cannot produce for all of them
+at once). What the fixture *does* validate - GMB link construction, the
+Owner Name/Email Phase 1 stub, and whether the vertical-mismatch/rubric-gap
+flags fire - is asserted exactly, and it caught two real issues:
+- **Fixed**: `verticalFilter.js` didn't recognize "mechanical" as an HVAC
+  keyword, so "Dense Mechanical" (an HVAC company) slipped past the
+  Plumbing-search mismatch filter. Added.
+- **Fixed**: Competitive Delta's competitor pool was drawn from every place
+  in the raw search batch, including vertical-mismatched ones - so a 313-
+  review HVAC company could inflate the "competitor" average for actual
+  plumbers in the same city. `leadPipeline.js` now excludes mismatched
+  places from the competitor pool before computing stats.
+- **Known limitation, not fixed**: "Bee Line Heating Air Conditioning and
+  Plumbing" (per the research, primarily an HVAC business) is not flagged,
+  because its name contains a plumbing keyword too - indistinguishable by
+  name alone from "On Time Plumbing Heating Cooling & Electric" (a real
+  multi-service business, correctly not flagged). The spec itself says this
+  class of case needs review-text analysis, which Phase 1 does not
+  implement; documented in the test rather than patched with a heuristic
+  that would misfire on genuine multi-service businesses.
 
 ## Project layout
 

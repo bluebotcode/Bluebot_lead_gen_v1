@@ -18,7 +18,7 @@ const TRADES = {
     types: ['plumber']
   },
   hvac: {
-    keywords: ['hvac', 'heating', 'air conditioning', 'heat & air', 'heat and air', 'cooling'],
+    keywords: ['hvac', 'heating', 'air conditioning', 'heat & air', 'heat and air', 'cooling', 'mechanical'],
     types: ['hvac_contractor']
   },
   electrical: {
